@@ -3,15 +3,15 @@
 -- NEARBY table (HERE + N/E/S/W, one row each — no confusing sub-rows). Two world overlays: ground climate
 -- squares + floating snow-line/peak squares (world-fixed). View-only + intents. ROBUST REGISTRATION.
 
-local OPEN_ID, PANEL, NWIN = 'atena-std-weather:open', 'atena-std-weather:panel', 'atena-std-weather:nearby'
+local OPEN_ID, PANEL, NWIN = 'std-weather:open', 'std-weather:panel', 'std-weather:nearby'
 local open, showGround, showHeights = false, false, false
 local STEP, N = 60.0, 3                   -- viz grid: cell spacing (m), radius (cells from center)
 local grid, lastKey = {}, nil            -- cached cells (invalidated when the grid params or your cell change)
 
 local function atenaUp()   return GetResourceState('atena') == 'started' end
-local function weatherUp() return GetResourceState('atena-std-weather') == 'started' end
-local function climateOf(zone) return (weatherUp() and exports['atena-std-weather']:climateOf(zone)) or 'temperate' end
-local function levels() return (weatherUp() and exports['atena-std-weather']:levels()) or { snowLine = 450.0, snowPeak = 700.0 } end
+local function weatherUp() return GetResourceState('std-weather') == 'started' end
+local function climateOf(zone) return (weatherUp() and exports['std-weather']:climateOf(zone)) or 'temperate' end
+local function levels() return (weatherUp() and exports['std-weather']:levels()) or { snowLine = 450.0, snowPeak = 700.0 } end
 
 -- box color by the actual WEATHER (so the 3D boxes show what it's doing there, incl. altitude snow).
 local WEATHER_COLOR = {
@@ -29,7 +29,7 @@ local BAND_NAME = { low = 'rain / normal', mid = 'mixed (snow-line)', high = 'sn
 -- debug never drifts from what the client applies. Maps the band to a representative z.
 local function bandWeather(climate, planW, band, lv)
     local z = (band == 'high' and (lv.snowPeak + 1.0)) or (band == 'mid' and ((lv.snowLine + lv.snowPeak) * 0.5)) or 0.0
-    return (weatherUp() and exports['atena-std-weather']:atAltitude(climate, planW, z)) or planW
+    return (weatherUp() and exports['std-weather']:atAltitude(climate, planW, z)) or planW
 end
 
 -- ── STATUS card (kv): current + controls + altitude breakdown HERE ───────────────────────────────────
@@ -40,7 +40,7 @@ local function statusRows()
     local zone = GetNameOfZone(p.x, p.y, p.z)
     local climate = climateOf(zone)
     local planW = climates[climate] or '—'
-    local cur = (weatherUp() and exports['atena-std-weather']:current()) or {}
+    local cur = (weatherUp() and exports['std-weather']:current()) or {}
     local lv = levels()
     local hereBand = bandKey(p.z, lv)
     local r = {
@@ -70,7 +70,7 @@ local function statusRows()
 
     -- ENVIRONMENT readout (the bundle the clothing/thermal system consumes) — see the model live + tune it.
     -- pcall-isolated: a throw in the cross-resource call must NOT blank the whole panel (nui.md §8).
-    local okEnv, env = pcall(function() return weatherUp() and exports['atena-std-weather']:environment() or nil end)
+    local okEnv, env = pcall(function() return weatherUp() and exports['std-weather']:environment() or nil end)
     if not okEnv then r[#r + 1] = { key = 'env ERROR', value = tostring(env), tone = 'warn' } end
     if okEnv and env then
         local fl = env.feelsLike or 20.0
@@ -137,7 +137,7 @@ end)
 AddEventHandler('atena:debug:action', function(panel, key, value)
     if panel ~= PANEL then return end
     if key == 'force' then
-        if value == 'auto' then TriggerServerEvent('atena-std-weather:op:auto') else TriggerServerEvent('atena-std-weather:op:set', value) end
+        if value == 'auto' then TriggerServerEvent('std-weather:op:auto') else TriggerServerEvent('std-weather:op:set', value) end
     elseif key == 'viz: boxes' then showGround = not showGround
     elseif key == 'viz: bands' then showHeights = not showHeights
     elseif key == 'grid step (m)'       then STEP = math.max(20.0, tonumber(value) or STEP); lastKey = nil
@@ -173,8 +173,8 @@ CreateThread(function()
                     local planW = plan[climate] or 'EXTRASUNNY'
                     grid[#grid + 1] = { x = x, y = y, gz = gz, alpine = (climate == 'alpine'),
                         cl = wcol(planW),
-                        cm = wcol(exports['atena-std-weather']:atAltitude(climate, planW, (lv.snowLine + lv.snowPeak) * 0.5)),
-                        ch = wcol(exports['atena-std-weather']:atAltitude(climate, planW, lv.snowPeak + 1.0)) }
+                        cm = wcol(exports['std-weather']:atAltitude(climate, planW, (lv.snowLine + lv.snowPeak) * 0.5)),
+                        ch = wcol(exports['std-weather']:atAltitude(climate, planW, lv.snowPeak + 1.0)) }
                 end end
             end
             local half = STEP * 0.45
