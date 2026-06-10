@@ -13,8 +13,8 @@ local function arm()
         exports['std-weather']:setAuthorizer(function(src, _action) return exports.atena:can(src, 'debug') end)
         exports['std-weather']:setGuard(function(opts, src, args) return exports.atena:checkInbound(opts, src, args) end)
         exports['std-weather']:setHourProvider(function()
-            if GetResourceState('time') ~= 'started' then return nil end
-            local ok, t = pcall(function() return exports.time:getState() end)
+            if GetResourceState('std-time') ~= 'started' then return nil end
+            local ok, t = pcall(function() return exports['std-time']:getState() end)
             return (ok and t and t.h) or nil
         end)
     end)
@@ -47,7 +47,7 @@ local function sync()
 end
 
 arm(); sync()
-AddEventHandler('onResourceStart', function(res) if res == 'atena' or res == 'weather' then arm(); sync() end end)
+AddEventHandler('onResourceStart', function(res) if res == 'atena' or res == 'std-weather' then arm(); sync() end end)
 AddEventHandler('atena:settings:changed', function(key, value)
     if GetResourceState('std-weather') ~= 'started' then return end   -- gate: weather may be mid-restart
     if key == 'weatherForce' then applyForce(value)
