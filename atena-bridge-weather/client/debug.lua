@@ -121,7 +121,7 @@ local function close() exports.atena:uiDebugPanel(PANEL, nil); exports.atena:uiW
 
 -- ── registration (robust: thread one-shot + events) ──────────────────────────────────────────────────
 -- toggle entry: the launcher badge mirrors whether the card is open (debugSet keeps it true).
-local function reg() if atenaUp() then exports.atena:debugAdd({ id = OPEN_ID, group = 'world', label = 'Weather', icon = 'cloud', toggle = true, value = open }) end end
+local function reg() if atenaUp() then exports.atena:debugAdd({ id = OPEN_ID, group = 'world', label = 'Weather', icon = 'cloud', toggle = true, value = open, peekWin = PANEL }) end end
 local function badge() if atenaUp() then exports.atena:debugSet(OPEN_ID, open) end end
 CreateThread(function() while not atenaUp() do Wait(250) end; reg() end)
 AddEventHandler('onResourceStart', function(res) if res == 'atena' then reg() end end)
@@ -147,6 +147,15 @@ AddEventHandler('atena:debug:action', function(panel, key, value)
 end)
 AddEventHandler('atena:debug:panelClosed', function(p) if p == PANEL then open = false; exports.atena:uiWindow(NWIN, nil); badge() end end)
 CreateThread(function() while true do if open then push() end; Wait(2000) end end)
+
+-- hover-PEEK (view-only): preview ONLY the status PANEL (not the NEARBY table) without opening for
+-- real (no open flag, no badge); peekEnd clears it. The full open (+ NWIN) is the pin (invoke).
+AddEventHandler('atena:debug:peek', function(win)
+    if win == PANEL and not open and atenaUp() then exports.atena:uiDebugPanel(PANEL, { title = 'WEATHER', rows = statusRows() }) end
+end)
+AddEventHandler('atena:debug:peekEnd', function(win)
+    if win == PANEL and not open and atenaUp() then exports.atena:uiDebugPanel(PANEL, nil) end
+end)
 
 -- ── world overlays: FILLED weather boxes per cell (DrawBox, translucent) colored by the weather + ONE
 -- filled SLAB per division (snow-line / snow-peak) across the whole grid. Readable, not a wire-mesh.
