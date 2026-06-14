@@ -5,6 +5,7 @@
 
 local OPEN_ID, PANEL, NWIN = 'std-weather:open', 'std-weather:panel', 'std-weather:nearby'
 local open, showGround, showHeights = false, false, false
+local showNearby = true                   -- the NEARBY table is part of the panel set but independently closable (its ✕)
 local STEP, N = 60.0, 3                   -- viz grid: cell spacing (m), radius (cells from center)
 local grid, lastKey = {}, nil            -- cached cells (invalidated when the grid params or your cell change)
 
@@ -115,7 +116,7 @@ end
 local function push()
     if not (open and atenaUp()) then return end
     exports.atena:uiDebugPanel(PANEL, { title = 'WEATHER', rows = statusRows() })
-    exports.atena:uiWindow(NWIN, nearbyWin())
+    if showNearby then exports.atena:uiWindow(NWIN, nearbyWin()) end   -- skip if the user closed it via its ✕
 end
 local function close() exports.atena:uiDebugPanel(PANEL, nil); exports.atena:uiWindow(NWIN, nil) end
 
@@ -131,7 +132,7 @@ AddEventHandler('atena:debug:refresh', reg)
 AddEventHandler('atena:debug:invoke', function(id)
     if id ~= OPEN_ID then return end
     open = not open
-    if open then exports.atena:uiDebugArrange(true); push() else close() end
+    if open then showNearby = true; exports.atena:uiDebugArrange(true); push() else close() end   -- re-open restores NEARBY
     badge()
 end)
 AddEventHandler('atena:debug:action', function(panel, key, value)
@@ -145,7 +146,10 @@ AddEventHandler('atena:debug:action', function(panel, key, value)
     end
     push()
 end)
-AddEventHandler('atena:debug:panelClosed', function(p) if p == PANEL then open = false; exports.atena:uiWindow(NWIN, nil); badge() end end)
+AddEventHandler('atena:debug:panelClosed', function(p)
+    if p == PANEL then open = false; exports.atena:uiWindow(NWIN, nil); badge()
+    elseif p == NWIN then showNearby = false; exports.atena:uiWindow(NWIN, nil) end   -- close just the NEARBY table; the loop won't re-add it
+end)
 CreateThread(function() while true do if open then push() end; Wait(2000) end end)
 
 -- hover-PEEK (view-only): preview ONLY the status PANEL (not the NEARBY table) without opening for
